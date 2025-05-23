@@ -1,5 +1,6 @@
 .{
-    .name = "libtiff",
+    .name = .libtiff,
+    .fingerprint = 0x295e4c7806f22add,
     .version = "4.7.0",
     .dependencies = .{
         .libz = .{
@@ -12,6 +13,10 @@
         },
     },
     .paths = .{
-        "",
+        "build.zig",
+        "build.zig.zon",
+        "libtiff/",
+        "port/",
+        "tools/",
     },
 }

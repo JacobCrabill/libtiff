@@ -5,7 +5,7 @@
 
 /* clang-format disabled because FindTIFF.cmake is very sensitive to the
  * formatting of below line being a single line.
- * Furthermore, configure_file variables of type "@VAR@" are
+ * Furthermore, configure_file variables of type "<at>VAR<at>" are
  * modified by clang-format and won't be substituted by CMake.
  */
 #define TIFFLIB_VERSION_STR "LIBTIFF, Version @LIBTIFF_VERSION@\nCopyright (c) 1988-1996 Sam Leffler\nCopyright (c) 1991-1996 Silicon Graphics, Inc."
