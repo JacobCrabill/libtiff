@@ -123,8 +123,8 @@ pub fn build(b: *std.Build) !void {
     const tiff_port = b.addLibrary(.{
         .name = "port",
         .root_module = b.createModule(.{
-            .target = b.graph.host,
-            .optimize = .Debug,
+            .target = target,
+            .optimize = optimize,
         }),
         .linkage = .static,
     });
@@ -136,8 +136,8 @@ pub fn build(b: *std.Build) !void {
     const mkg3states = b.addExecutable(.{
         .name = "mkg3states",
         .root_module = b.createModule(.{
-            .target = b.graph.host,
-            .optimize = .ReleaseSafe,
+            .target = target,
+            .optimize = optimize,
         }),
     });
     mkg3states.addConfigHeader(tif_config_h);
@@ -172,7 +172,7 @@ pub fn build(b: *std.Build) !void {
         .name = "tiff",
         .root_module = b.createModule(.{
             .target = target,
-            .optimize = .Debug,
+            .optimize = optimize,
         }),
         .linkage = .static,
     });
