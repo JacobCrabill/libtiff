@@ -10,7 +10,9 @@ pub fn build(b: *std.Build) !void {
     const enable_zstd = b.option(bool, "zstd", "enable zstd compression (default: true)") orelse true;
 
     // tif_config_h
-    const tif_config_h = b.addConfigHeader(.{ .style = .{ .autoconf = b.path("libtiff/tif_config.h.in") } }, .{
+    const tif_config_h = b.addConfigHeader(.{
+        .style = .{ .autoconf_undef = b.path("libtiff/tif_config.h.in") },
+    }, .{
         .HAVE_UNISTD_H = 1,
         .HAVE_FCNTL_H = 1,
         .HAVE_ASSERT_H = 1,
@@ -67,7 +69,9 @@ pub fn build(b: *std.Build) !void {
     try tif_config_h.values.put("ZSTD_SUPPORT", if (enable_zstd) .{ .int = 1 } else .undef);
 
     // "tiffconf.h": non-UNIX configuration definitions
-    const tiffconf_h = b.addConfigHeader(.{ .style = .{ .autoconf = b.path("libtiff/tiffconf.h.in") } }, .{
+    const tiffconf_h = b.addConfigHeader(.{
+        .style = .{ .autoconf_undef = b.path("libtiff/tiffconf.h.in") },
+    }, .{
         .TIFF_INT16_T = .int16_t,
         .TIFF_INT32_T = .int32_t,
         .TIFF_INT64_T = .int64_t,
@@ -110,14 +114,19 @@ pub fn build(b: *std.Build) !void {
     try tiffconf_h.values.put("ZIP_SUPPORT", if (enable_zip) .{ .int = 1 } else .undef);
 
     // tiff_port library
-    const libport_config_h = b.addConfigHeader(.{ .style = .{ .autoconf = b.path("./port/libport_config.h.in") } }, .{
+    const libport_config_h = b.addConfigHeader(.{
+        .style = .{ .autoconf_undef = b.path("./port/libport_config.h.in") },
+    }, .{
         .HAVE_GETOPT = null,
         .HAVE_UNISTD_H = 1,
     });
-    const tiff_port = b.addStaticLibrary(.{
+    const tiff_port = b.addLibrary(.{
         .name = "port",
-        .target = b.graph.host,
-        .optimize = .Debug,
+        .root_module = b.createModule(.{
+            .target = b.graph.host,
+            .optimize = .Debug,
+        }),
+        .linkage = .static,
     });
     tiff_port.installConfigHeader(libport_config_h);
     tiff_port.addCSourceFile(.{ .file = b.path("./port/dummy.c") });
@@ -126,7 +135,10 @@ pub fn build(b: *std.Build) !void {
     // "make g3 states" executable
     const mkg3states = b.addExecutable(.{
         .name = "mkg3states",
-        .target = b.graph.host,
+        .root_module = b.createModule(.{
+            .target = b.graph.host,
+            .optimize = .ReleaseSafe,
+        }),
     });
     mkg3states.addConfigHeader(tif_config_h);
     mkg3states.addConfigHeader(tiffconf_h);
@@ -156,10 +168,13 @@ pub fn build(b: *std.Build) !void {
     });
 
     // libtiff itself
-    const libtiff = b.addStaticLibrary(.{
+    const libtiff = b.addLibrary(.{
         .name = "tiff",
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = .Debug,
+        }),
+        .linkage = .static,
     });
 
     libtiff.addConfigHeader(tiffvers_h);
@@ -258,8 +273,10 @@ pub fn build(b: *std.Build) !void {
     // tools
     const tiffdump = b.addExecutable(.{
         .name = "tiffdump",
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     tiffdump.root_module.linkLibrary(libtiff);
     tiffdump.root_module.linkLibrary(tiff_port);
@@ -268,8 +285,10 @@ pub fn build(b: *std.Build) !void {
 
     const tiffcmp = b.addExecutable(.{
         .name = "tiffcmp",
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     tiffcmp.root_module.linkLibrary(libtiff);
     tiffcmp.root_module.linkLibrary(tiff_port);
@@ -278,8 +297,10 @@ pub fn build(b: *std.Build) !void {
 
     const tiffinfo = b.addExecutable(.{
         .name = "tiffinfo",
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     tiffinfo.root_module.linkLibrary(libtiff);
     tiffinfo.root_module.linkLibrary(tiff_port);

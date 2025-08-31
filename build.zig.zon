@@ -4,12 +4,12 @@
     .version = "4.7.0",
     .dependencies = .{
         .libz = .{
-            .url = "https://github.com/andrewrk/libz/archive/293a98a22fa592a6703a5663ab515bd1312ca6c8.tar.gz",
-            .hash = "libz-1.3.0-AAAAALOlEAANOFg4jJ9073acqzdiz920ruMxM6XgjJbu",
+            .url = "https://github.com/allyourcodebase/zlib/archive/61e7df7e996ec5a5f13a653db3c419adb340d6ef.tar.gz",
+            .hash = "zlib-1.3.1-ZZQ7lbYMAAB1hTSOKSXAKAgHsfDcyWNH_37ojw5WSpgR",
         },
         .zstd = .{
-            .url = "https://github.com/leroycep/zstd/archive/450c282c05a8fb728befc27e8b7c31f00f97d517.tar.gz",
-            .hash = "N-V-__8AAL5kdADIgnGkmb9bmzkS4Dd37m2DpD5raloOU_jd",
+            .url = "https://github.com/JacobCrabill/zig-zstd/archive/33d595944da31f02e1eb38fd6e7f24239fb280d2.tar.gz",
+            .hash = "zig_zstd-1.5.7-pHw6Uk4RAAC_bZU_OMMJJ8Tdnr-qpvw_YmwYiI8T5lAl",
         },
     },
     .paths = .{
