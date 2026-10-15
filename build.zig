@@ -56,17 +56,17 @@ pub fn build(b: *std.Build) !void {
         ._LARGE_FILES = null,
         .WORDS_BIGENDIAN = null,
     });
-    try tif_config_h.values.put("SIZEOF_SIZE_T", switch (target.result.ptrBitWidth()) {
+    try tif_config_h.values.put(b.allocator, "SIZEOF_SIZE_T", switch (target.result.ptrBitWidth()) {
         32 => .{ .int = 4 },
         64 => .{ .int = 8 },
         else => return error.UnsupportedPointerBitWidth,
     });
-    try tif_config_h.values.put("USE_WIN32_FILEIO", switch (target.result.os.tag) {
+    try tif_config_h.values.put(b.allocator, "USE_WIN32_FILEIO", switch (target.result.os.tag) {
         .windows => .defined,
         else => .undef,
     });
-    try tif_config_h.values.put("LZMA_SUPPORT", if (enable_lzma) .{ .int = 1 } else .undef);
-    try tif_config_h.values.put("ZSTD_SUPPORT", if (enable_zstd) .{ .int = 1 } else .undef);
+    try tif_config_h.values.put(b.allocator, "LZMA_SUPPORT", if (enable_lzma) .{ .int = 1 } else .undef);
+    try tif_config_h.values.put(b.allocator, "ZSTD_SUPPORT", if (enable_zstd) .{ .int = 1 } else .undef);
 
     // "tiffconf.h": non-UNIX configuration definitions
     const tiffconf_h = b.addConfigHeader(.{
@@ -105,13 +105,13 @@ pub fn build(b: *std.Build) !void {
     });
 
     // Required to specify a identifier during runtime
-    try tiffconf_h.values.put("TIFF_SSIZE_T", switch (target.result.ptrBitWidth()) {
+    try tiffconf_h.values.put(b.allocator, "TIFF_SSIZE_T", switch (target.result.ptrBitWidth()) {
         32 => .{ .ident = "int32_t" },
         64 => .{ .ident = "int64_t" },
         else => return error.UnsupportedPointerBitWidth,
     });
-    try tiffconf_h.values.put("LIBDEFLATE_SUPPORT", if (enable_libdeflate) .{ .int = 1 } else .undef);
-    try tiffconf_h.values.put("ZIP_SUPPORT", if (enable_zip) .{ .int = 1 } else .undef);
+    try tiffconf_h.values.put(b.allocator, "LIBDEFLATE_SUPPORT", if (enable_libdeflate) .{ .int = 1 } else .undef);
+    try tiffconf_h.values.put(b.allocator, "ZIP_SUPPORT", if (enable_zip) .{ .int = 1 } else .undef);
 
     // tiff_port library
     const libport_config_h = b.addConfigHeader(.{
@@ -129,7 +129,7 @@ pub fn build(b: *std.Build) !void {
         .linkage = .static,
     });
     tiff_port.installConfigHeader(libport_config_h);
-    tiff_port.addCSourceFile(.{ .file = b.path("./port/dummy.c") });
+    tiff_port.root_module.addCSourceFile(.{ .file = b.path("./port/dummy.c") });
     tiff_port.installHeader(b.path("./port/libport.h"), "libport.h");
 
     // "make g3 states" executable
@@ -140,11 +140,11 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
         }),
     });
-    mkg3states.addConfigHeader(tif_config_h);
-    mkg3states.addConfigHeader(tiffconf_h);
-    mkg3states.addCSourceFile(.{ .file = b.path("./libtiff/mkg3states.c") });
-    mkg3states.linkLibrary(tiff_port);
-    mkg3states.linkLibC();
+    mkg3states.root_module.addConfigHeader(tif_config_h);
+    mkg3states.root_module.addConfigHeader(tiffconf_h);
+    mkg3states.root_module.addCSourceFile(.{ .file = b.path("./libtiff/mkg3states.c") });
+    mkg3states.root_module.linkLibrary(tiff_port);
+    mkg3states.root_module.link_libc = true;
 
     const generate_tif_fax3sm_c = b.addRunArtifact(mkg3states);
     generate_tif_fax3sm_c.addArgs(&.{ "-c", "const" });
@@ -177,18 +177,18 @@ pub fn build(b: *std.Build) !void {
         .linkage = .static,
     });
 
-    libtiff.addConfigHeader(tiffvers_h);
-    libtiff.addConfigHeader(tiffconf_h);
-    libtiff.addConfigHeader(tif_config_h);
+    libtiff.root_module.addConfigHeader(tiffvers_h);
+    libtiff.root_module.addConfigHeader(tiffconf_h);
+    libtiff.root_module.addConfigHeader(tif_config_h);
 
     libtiff.installConfigHeader(tiffconf_h);
     libtiff.installConfigHeader(tif_config_h);
     libtiff.installConfigHeader(tiffvers_h);
     libtiff.installHeadersDirectory(b.path("libtiff"), "", .{});
 
-    libtiff.addIncludePath(b.path("libtiff"));
-    libtiff.addCSourceFile(.{ .file = tif_fax3sm_c });
-    libtiff.addCSourceFiles(.{
+    libtiff.root_module.addIncludePath(b.path("libtiff"));
+    libtiff.root_module.addCSourceFile(.{ .file = tif_fax3sm_c });
+    libtiff.root_module.addCSourceFiles(.{
         .files = &.{
             "libtiff/tif_aux.c",
             "libtiff/tif_close.c",
@@ -224,48 +224,48 @@ pub fn build(b: *std.Build) !void {
         },
         .flags = &.{},
     });
-    libtiff.linkLibC();
+    libtiff.root_module.link_libc = true;
 
     // TODO:
-    // if (enable_jbig) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_jbig.c") });
-    // if (enable_jpeg) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_jpeg.c") });
-    // if (enable_jpeg_12) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_jpeg_12.c") });
-    // if (enable_lerc) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_lerc.c") });
-    // if (enable_ojpeg) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_ojpeg.c") });
-    // if (enable_pixarlog) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_pixarlog.c") });
-    // if (enable_thunder) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_thunder.c") });
-    // if (enable_webp) libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_webp.c") });
+    // if (enable_jbig) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_jbig.c") });
+    // if (enable_jpeg) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_jpeg.c") });
+    // if (enable_jpeg_12) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_jpeg_12.c") });
+    // if (enable_lerc) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_lerc.c") });
+    // if (enable_ojpeg) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_ojpeg.c") });
+    // if (enable_pixarlog) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_pixarlog.c") });
+    // if (enable_thunder) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_thunder.c") });
+    // if (enable_webp) libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_webp.c") });
 
     if (enable_zstd) {
-        libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_zstd.c") });
+        libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_zstd.c") });
 
         if (b.lazyDependency("zstd", .{
             .target = target,
             .optimize = optimize,
         })) |zstd| {
-            libtiff.linkLibrary(zstd.artifact("zstd"));
+            libtiff.root_module.linkLibrary(zstd.artifact("zstd"));
         }
     }
 
     if (enable_lzma) {
-        libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_lzma.c") });
-        libtiff.linkSystemLibrary("lzma");
+        libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_lzma.c") });
+        libtiff.root_module.linkSystemLibrary("lzma", .{});
     }
 
     if (enable_zip) {
-        libtiff.addCSourceFile(.{ .file = b.path("libtiff/tif_zip.c") });
+        libtiff.root_module.addCSourceFile(.{ .file = b.path("libtiff/tif_zip.c") });
 
         if (b.lazyDependency("libz", .{
             .target = target,
             .optimize = optimize,
         })) |libz| {
-            libtiff.linkLibrary(libz.artifact("z"));
+            libtiff.root_module.linkLibrary(libz.artifact("z"));
         }
     }
 
     switch (target.result.os.tag) {
-        .windows => libtiff.addCSourceFile(.{ .file = b.path("./libtiff/tif_win32.c") }),
-        else => libtiff.addCSourceFile(.{ .file = b.path("./libtiff/tif_unix.c") }),
+        .windows => libtiff.root_module.addCSourceFile(.{ .file = b.path("./libtiff/tif_win32.c") }),
+        else => libtiff.root_module.addCSourceFile(.{ .file = b.path("./libtiff/tif_unix.c") }),
     }
 
     b.installArtifact(libtiff);
